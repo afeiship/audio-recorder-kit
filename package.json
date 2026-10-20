@@ -38,5 +38,9 @@
     "audio-recorder-kit",
     "number",
     "num"
-  ]
+  ],
+  "dependencies": {
+    "js-audio-recorder": "^1.0.7",
+    "media-devices": "^0.5.0"
+  }
 }
