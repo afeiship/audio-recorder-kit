@@ -32,3 +32,10 @@ declare module 'js-audio-recorder' {
     getWAVBlob(): Blob;
   }
 }
+
+// Ambient override for media-devices, an ESM-only package whose types
+// cannot be imported from this CommonJS-typechecked source under Node16
+// resolution. Only the exports this library consumes are declared.
+declare module 'media-devices' {
+  export function supportsMediaDevices(): boolean;
+}
