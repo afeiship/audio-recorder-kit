@@ -1,0 +1,122 @@
+import { describe, expect, it } from 'bun:test';
+import React from 'react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { AudioRecorderProvider, useRecorderState } from '../src/react';
+import { FakeRecorder } from './mock';
+
+function createWrapper(props: Record<string, any> = {}) {
+  let fake!: FakeRecorder;
+  const wrapper = ({ children }: { children?: React.ReactNode }) => (
+    <AudioRecorderProvider
+      _createRecorder={(cfg: any) => {
+        fake = new FakeRecorder(cfg);
+        return fake as any;
+      }}
+      _supportsMediaDevices={() => true}
+      {...props}
+    >
+      {children}
+    </AudioRecorderProvider>
+  );
+  return {
+    wrapper,
+    getFake: () => fake,
+  };
+}
+
+describe('AudioRecorderProvider + useRecorderState', () => {
+  it('should expose idle state, zero duration and a lazy instance', () => {
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRecorderState(), { wrapper });
+    expect(result.current.state).toBe('idle');
+    expect(result.current.duration).toBe(0);
+    expect(result.current.error).toBeNull();
+    expect(result.current.instance).toBeDefined();
+  });
+
+  it('should mirror state and duration through the lifecycle', async () => {
+    const { wrapper, getFake } = createWrapper();
+    const { result } = renderHook(() => useRecorderState(), { wrapper });
+
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(result.current.state).toBe('recording');
+    expect(getFake().startCalled).toBe(1);
+
+    act(() => {
+      result.current.pause();
+    });
+    expect(result.current.state).toBe('paused');
+
+    act(() => {
+      result.current.resume();
+    });
+    expect(result.current.state).toBe('recording');
+
+    let stopped: any;
+    await act(async () => {
+      stopped = await result.current.stop({ filename: 'a.wav' });
+    });
+    expect(result.current.state).toBe('stopped');
+    expect(stopped.file.name).toBe('a.wav');
+  });
+
+  it('should mirror duration and forward onTimeUpdate', async () => {
+    const times: number[] = [];
+    const { wrapper, getFake } = createWrapper({ onTimeUpdate: (ms: number) => times.push(ms) });
+    const { result } = renderHook(() => useRecorderState(), { wrapper });
+
+    await act(async () => {
+      await result.current.start();
+    });
+    act(() => {
+      getFake().emitProgress(1.5);
+    });
+    expect(result.current.duration).toBe(1500);
+    expect(times).toEqual([1500]);
+  });
+
+  it('should mirror errors from guarded methods and rethrow', async () => {
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRecorderState(), { wrapper });
+
+    expect(() => result.current.pause()).toThrow();
+    expect(result.current.error?.code).toBe('INVALID_STATE');
+  });
+
+  it('should mirror stopped state after maxDuration auto-stop', async () => {
+    let maxReached = false;
+    const { wrapper, getFake } = createWrapper({
+      maxDuration: 2000,
+      onMaxReach: () => {
+        maxReached = true;
+      },
+    });
+    const { result } = renderHook(() => useRecorderState(), { wrapper });
+
+    await act(async () => {
+      await result.current.start();
+    });
+    act(() => {
+      getFake().emitProgress(2.0);
+    });
+    expect(maxReached).toBe(true);
+    await waitFor(() => expect(result.current.state).toBe('stopped'));
+    expect(getFake().stopCalled).toBe(1);
+  });
+
+  it('should destroy the instance on unmount', async () => {
+    const { wrapper, getFake } = createWrapper();
+    const { result, unmount } = renderHook(() => useRecorderState(), { wrapper });
+    await act(async () => {
+      await result.current.start();
+    });
+    unmount();
+    await waitFor(() => expect(getFake().destroyCalled).toBe(1));
+  });
+
+  it('should throw when hooks are used outside the provider', () => {
+    expect(() => renderHook(() => useRecorderState())).toThrow(/AudioRecorderProvider/);
+  });
+});
