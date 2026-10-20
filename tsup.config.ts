@@ -28,7 +28,8 @@ const umdOptions: Options = {
   clean: false, // Don't clean to avoid race condition
   format: ['umd'] as any,
   tsconfig: './tsconfig.json',
-  sourcemap: true,
+  // Bundled deps' sourcemaps break tsup's map merging ("Invalid URL")
+  sourcemap: false,
   banner: {
     js: tsupBanner(),
   },
@@ -42,15 +43,17 @@ const umdOptions: Options = {
       'export default': 'export =',
     }),
     umdWrapper({
-      libraryName: 'urlLiteral',
+      libraryName: 'AudioRecorder',
     }),
   ],
+  // Bundle runtime deps so the UMD build is self-contained for <script> use
+  noExternal: ['js-audio-recorder', 'media-devices'],
 };
 
 export default defineConfig([
   {
     ...baseOptions,
-    splitting: true,
+    splitting: false,
   },
   umdOptions
 ]);
