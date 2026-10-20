@@ -13,7 +13,7 @@ export type ErrorCode =
 
 export interface WavePayload {
   vol: number;
-  waveData: Uint8Array;
+  waveData: Uint8Array; // 时域波形点阵，透传底层 analyser 数据，1024 点，值域 0 ~ 255（128 为中线）
   duration: number;
 }
 

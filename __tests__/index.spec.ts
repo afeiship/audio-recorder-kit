@@ -91,7 +91,7 @@ describe('AudioRecorder - Recording & callbacks', () => {
     expect(timeVal).toBe(1500);
     expect(wave).not.toBeNull();
     expect(wave.vol).toBe(75);
-    expect(wave.waveData.length).toBe(2048);
+    expect(wave.waveData.length).toBe(1024);
     expect(wave.duration).toBe(1500);
   });
 
@@ -162,5 +162,100 @@ describe('AudioRecorder - Recording & callbacks', () => {
     recorder.pause();
     const result = await recorder.stop();
     expect(result.duration).toBe(1000);
+  });
+
+  it('should destroy previous underlying recorder when starting a new session', async () => {
+    const fakes: FakeRecorder[] = [];
+    const recorder = new AudioRecorder({
+      _supportsMediaDevices: () => true,
+      _createRecorder: (cfg) => {
+        const f = new FakeRecorder(cfg);
+        fakes.push(f);
+        return f as any;
+      },
+    });
+
+    await recorder.start();
+    await recorder.stop();
+    await recorder.start();
+
+    expect(fakes.length).toBe(2);
+    expect(fakes[0].destroyCalled).toBe(1); // previous session cleaned up
+    expect(fakes[1].startCalled).toBe(1);
+    expect(recorder.state).toBe('recording');
+  });
+
+  it('should pass default 16k/16bit/mono config to underlying recorder', async () => {
+    const fakes: FakeRecorder[] = [];
+    const recorder = new AudioRecorder({
+      _supportsMediaDevices: () => true,
+      _createRecorder: (cfg) => {
+        const f = new FakeRecorder(cfg);
+        fakes.push(f);
+        return f as any;
+      },
+    });
+    await recorder.start();
+    expect(fakes[0].config).toEqual({ sampleRate: 16000, sampleBits: 16, numChannels: 1 });
+  });
+});
+
+describe('AudioRecorder - destroy & cleanup', () => {
+  it('should stop and destroy underlying recorder when destroying mid-recording', async () => {
+    const fake = new FakeRecorder();
+    const recorder = new AudioRecorder({
+      _supportsMediaDevices: () => true,
+      _createRecorder: () => fake as any,
+    });
+
+    await recorder.start();
+    await recorder.destroy();
+
+    expect(recorder.state).toBe('destroyed');
+    expect(fake.stopCalled).toBe(1);      // capture stopped first
+    expect(fake.destroyCalled).toBe(1);   // then destroyed
+  });
+
+  it('should clear callbacks so late events never fire after destroy', async () => {
+    const fake = new FakeRecorder();
+    let fired = 0;
+    const recorder = new AudioRecorder({
+      _supportsMediaDevices: () => true,
+      _createRecorder: () => fake as any,
+      onTimeUpdate: () => { fired++; },
+    });
+
+    await recorder.start();
+    fake.emitProgress(0.5);
+    expect(fired).toBe(1);
+
+    await recorder.destroy();
+    fake.emitProgress(1); // late event after destroy
+    expect(fired).toBe(1);
+  });
+
+  it('should be idempotent and reject all operations after destroyed', async () => {
+    const fake = new FakeRecorder();
+    const recorder = new AudioRecorder({
+      _supportsMediaDevices: () => true,
+      _createRecorder: () => fake as any,
+    });
+
+    await recorder.destroy();
+    await recorder.destroy(); // idempotent
+    expect(recorder.state).toBe('destroyed');
+
+    let err: any;
+    await recorder.start().catch((e) => { err = e; });
+    expect(err.code).toBe('INVALID_STATE');
+
+    try { recorder.pause(); } catch (e: any) { err = e; }
+    expect(err.code).toBe('INVALID_STATE');
+
+    try { recorder.resume(); } catch (e: any) { err = e; }
+    expect(err.code).toBe('INVALID_STATE');
+
+    await recorder.stop().catch((e: any) => { err = e; });
+    expect(err.code).toBe('INVALID_STATE');
   });
 });

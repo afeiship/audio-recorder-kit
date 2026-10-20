@@ -14,7 +14,7 @@ export class FakeRecorder {
   destroyCalled = 0;
 
   shouldThrowOnStart: Error | null = null;
-  mockWaveData: Uint8Array = new Uint8Array(2048).fill(128);
+  mockWaveData: Uint8Array = new Uint8Array(1024).fill(128);
   mockBlob: Blob = new Blob(['fake-wav-data'], { type: 'audio/wav' });
 
   constructor(config: RecorderConfig = {}) {

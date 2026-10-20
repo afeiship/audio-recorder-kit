@@ -92,6 +92,16 @@ export default class AudioRecorder {
     this._duration = 0;
     this._isAutoStopping = false;
 
+    // Free the previous session's AudioContext + MediaStream (upstream stop() alone keeps them alive)
+    if (this._recorder) {
+      try {
+        await this._recorder.destroy();
+      } catch {
+        // ignore cleanup errors from previous session
+      }
+      this._recorder = null;
+    }
+
     this._recorder = this._createRecorder({
       sampleRate: this._options.sampleRate ?? 16000,
       sampleBits: this._options.sampleBits ?? 16,
@@ -178,7 +188,7 @@ export default class AudioRecorder {
       this._duration = Math.round(payload.duration * 1000);
       this._options.onTimeUpdate?.(this._duration);
 
-      const waveData = recorder.getRecordAnalyseData?.() ?? new Uint8Array(2048).fill(128);
+      const waveData = recorder.getRecordAnalyseData?.() ?? new Uint8Array(1024).fill(128);
       this._options.onWaveDataUpdate?.({
         vol: Math.min(100, Math.max(0, Math.round(payload.vol || 0))),
         waveData,
