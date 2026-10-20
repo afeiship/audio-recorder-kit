@@ -113,6 +113,12 @@ export default class AudioRecorder {
       await this._recorder.start();
       this._state = 'recording';
     } catch (err) {
+      // Upstream may have created an AudioContext before failing; release it
+      try {
+        await this._recorder?.destroy();
+      } catch {
+        // ignore cleanup errors on the failed instance
+      }
       this._recorder = null;
       const code = mapDOMExceptionToErrorCode(err);
       const wrapped = new AudioRecorderError(code, `Failed to start recording: ${code}`, err);

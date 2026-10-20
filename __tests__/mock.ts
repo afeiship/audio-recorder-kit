@@ -12,6 +12,7 @@ export class FakeRecorder {
   resumeCalled = 0;
   stopCalled = 0;
   destroyCalled = 0;
+  calls: string[] = [];
 
   shouldThrowOnStart: Error | null = null;
   mockWaveData: Uint8Array = new Uint8Array(1024).fill(128);
@@ -22,6 +23,7 @@ export class FakeRecorder {
   }
 
   async start(): Promise<void> {
+    this.calls.push('start');
     if (this.shouldThrowOnStart) {
       throw this.shouldThrowOnStart;
     }
@@ -29,18 +31,22 @@ export class FakeRecorder {
   }
 
   pause(): void {
+    this.calls.push('pause');
     this.pauseCalled++;
   }
 
   resume(): void {
+    this.calls.push('resume');
     this.resumeCalled++;
   }
 
   stop(): void {
+    this.calls.push('stop');
     this.stopCalled++;
   }
 
   async destroy(): Promise<void> {
+    this.calls.push('destroy');
     this.destroyCalled++;
   }
 

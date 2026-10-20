@@ -77,6 +77,18 @@ describe('AudioRecorder - Recording & callbacks', () => {
     expect(recorder.state).toBe('idle');
   });
 
+  it('should best-effort destroy underlying recorder when start() fails', async () => {
+    const fake = new FakeRecorder();
+    fake.shouldThrowOnStart = new DOMException('denied', 'NotAllowedError');
+    const recorder = new AudioRecorder({
+      _supportsMediaDevices: () => true,
+      _createRecorder: () => fake as any,
+    });
+
+    await expect(recorder.start()).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(fake.destroyCalled).toBe(1);
+  });
+
   it('should fire onTimeUpdate and onWaveDataUpdate with ms duration', async () => {
     let timeVal = -1;
     let wave: any = null;
@@ -214,6 +226,7 @@ describe('AudioRecorder - destroy & cleanup', () => {
     expect(recorder.state).toBe('destroyed');
     expect(fake.stopCalled).toBe(1);      // capture stopped first
     expect(fake.destroyCalled).toBe(1);   // then destroyed
+    expect(fake.calls).toEqual(['start', 'stop', 'destroy']);
   });
 
   it('should clear callbacks so late events never fire after destroy', async () => {
