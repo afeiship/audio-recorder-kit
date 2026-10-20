@@ -10,13 +10,16 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.esm.js",
-      "require": "./dist/index.cjs.js"
+      "require": "./dist/index.cjs.js",
+      "default": "./dist/index.cjs.js"
     },
     "./react": {
       "types": "./dist/react.d.ts",
       "import": "./dist/react.esm.js",
-      "require": "./dist/react.cjs.js"
-    }
+      "require": "./dist/react.cjs.js",
+      "default": "./dist/react.cjs.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "src",
@@ -30,8 +33,8 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "react": ">=16.8",
-    "react-dom": ">=16.8"
+    "react": ">=16.14",
+    "react-dom": ">=16.14"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^21.0.3",
