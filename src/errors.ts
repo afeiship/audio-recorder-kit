@@ -9,7 +9,9 @@ export class AudioRecorderError extends Error {
     this.name = 'AudioRecorderError';
     this.code = code;
     this.rawError = rawError;
-    Object.setPrototypeOf(this, AudioRecorderError.prototype);
+    if (typeof Object.setPrototypeOf === 'function') {
+      Object.setPrototypeOf(this, AudioRecorderError.prototype);
+    }
   }
 }
 

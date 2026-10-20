@@ -1,3 +1,5 @@
+// Ambient override for js-audio-recorder, whose shipped types are loose.
+// This block intentionally narrows them for stricter local type-checking.
 declare module 'js-audio-recorder' {
   export interface RecorderConfig {
     sampleBits?: number;
@@ -10,7 +12,9 @@ declare module 'js-audio-recorder' {
     duration: number;
     fileSize: number;
     vol: number;
-    data: Array<DataView>;
+    // Raw per-sample frames; upstream never actually passes this at runtime,
+    // so it is optional. Unit: DataView of 32-bit float samples per channel.
+    data?: Array<DataView>;
   }
 
   export default class Recorder {
@@ -27,10 +31,4 @@ declare module 'js-audio-recorder' {
     getRecordAnalyseData(): Uint8Array;
     getWAVBlob(): Blob;
   }
-}
-
-declare module 'media-devices' {
-  export function supportsMediaDevices(): boolean;
-  export function enumerateDevices(): Promise<MediaDeviceInfo[]>;
-  export function getUserMedia(constraints?: MediaStreamConstraints): Promise<MediaStream>;
 }

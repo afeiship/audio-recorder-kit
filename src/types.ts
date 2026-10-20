@@ -1,3 +1,5 @@
+import type { AudioRecorderError } from './errors';
+
 export type RecorderState = 'idle' | 'recording' | 'paused' | 'stopped' | 'destroyed';
 
 export type ErrorCode =
@@ -34,5 +36,5 @@ export interface AudioRecorderOptions {
   onTimeUpdate?: (duration: number) => void;
   onWaveDataUpdate?: (payload: WavePayload) => void;
   onMaxReach?: () => void;
-  onError?: (error: any) => void;
+  onError?: (error: AudioRecorderError) => void;
 }
