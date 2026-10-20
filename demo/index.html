@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>AudioRecorder Demo</title>
+  <style>
+    body { font-family: sans-serif; padding: 24px; max-width: 680px; margin: 0 auto; }
+    .box { border: 1px solid #ddd; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+    .btn-group button { margin-right: 8px; padding: 8px 16px; cursor: pointer; }
+    canvas { background: #181818; width: 100%; height: 120px; display: block; border-radius: 4px; margin-top: 12px; }
+    .vol-meter { height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-top: 8px; }
+    .vol-bar { height: 100%; background: #4caf50; width: 0%; transition: width 0.05s ease; }
+    pre { background: #f5f5f5; padding: 12px; border-radius: 4px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h2>AudioRecorder 原生演示</h2>
+  <div class="box">
+    <div class="btn-group">
+      <button id="btnStart">开始录音</button>
+      <button id="btnPause" disabled>暂停</button>
+      <button id="btnResume" disabled>继续</button>
+      <button id="btnStop" disabled>停止</button>
+      <button id="btnDestroy">销毁</button>
+    </div>
+    <div style="margin-top: 12px;">
+      状态: <strong id="lblState">idle</strong> |
+      时长: <strong id="lblDuration">0.0s</strong> / 30s
+    </div>
+    <div class="vol-meter"><div class="vol-bar" id="volBar"></div></div>
+    <canvas id="waveCanvas" width="600" height="120"></canvas>
+  </div>
+
+  <div class="box" id="resultBox" style="display: none;">
+    <h3>DSR 评测产物 (File & Blob)</h3>
+    <pre id="resultInfo"></pre>
+    <audio id="audioPlayer" controls style="width: 100%; margin-top: 8px;"></audio>
+  </div>
+
+  <script type="module">
+    import AudioRecorder from '../dist/index.esm.js';
+
+    const canvas = document.getElementById('waveCanvas');
+    const ctx = canvas.getContext('2d');
+    const volBar = document.getElementById('volBar');
+    const lblState = document.getElementById('lblState');
+    const lblDuration = document.getElementById('lblDuration');
+    const btnStart = document.getElementById('btnStart');
+    const btnPause = document.getElementById('btnPause');
+    const btnResume = document.getElementById('btnResume');
+    const btnStop = document.getElementById('btnStop');
+    const btnDestroy = document.getElementById('btnDestroy');
+    const resultBox = document.getElementById('resultBox');
+    const resultInfo = document.getElementById('resultInfo');
+    const audioPlayer = document.getElementById('audioPlayer');
+
+    function drawWave(waveData) {
+      ctx.fillStyle = '#181818';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#00e676';
+      ctx.beginPath();
+      const sliceWidth = canvas.width / waveData.length;
+      let x = 0;
+      for (let i = 0; i < waveData.length; i++) {
+        const v = waveData[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        x += sliceWidth;
+      }
+      ctx.stroke();
+    }
+
+    const recorder = new AudioRecorder({
+      sampleRate: 16000,
+      sampleBits: 16,
+      numChannels: 1,
+      maxDuration: 30 * 1000,
+      onTimeUpdate(dur) {
+        lblDuration.innerText = (dur / 1000).toFixed(1) + 's';
+      },
+      onWaveDataUpdate({ vol, waveData }) {
+        volBar.style.width = vol + '%';
+        drawWave(waveData);
+      },
+      onMaxReach() {
+        alert('已达 30 秒最大时长，自动停止');
+      },
+      onError(err) {
+        console.error('录音器发生错误:', err);
+      }
+    });
+
+    function syncState() {
+      lblState.innerText = recorder.state;
+      btnStart.disabled = recorder.state === 'recording' || recorder.state === 'paused';
+      btnPause.disabled = recorder.state !== 'recording';
+      btnResume.disabled = recorder.state !== 'paused';
+      btnStop.disabled = recorder.state !== 'recording' && recorder.state !== 'paused';
+    }
+
+    btnStart.onclick = async () => {
+      await recorder.start();
+      syncState();
+    };
+    btnPause.onclick = () => { recorder.pause(); syncState(); };
+    btnResume.onclick = () => { recorder.resume(); syncState(); };
+    btnStop.onclick = async () => {
+      const res = await recorder.stop({ filename: 'dsr_exam_01.wav' });
+      syncState();
+      resultBox.style.display = 'block';
+      resultInfo.innerText = JSON.stringify({
+        fileName: res.file.name,
+        fileSize: res.file.size + ' bytes',
+        fileType: res.file.type,
+        duration: res.duration + ' ms',
+        blobSize: res.blob.size,
+        url: res.url,
+      }, null, 2);
+      audioPlayer.src = res.url;
+    };
+    btnDestroy.onclick = async () => {
+      await recorder.destroy();
+      syncState();
+    };
+  </script>
+</body>
+</html>
