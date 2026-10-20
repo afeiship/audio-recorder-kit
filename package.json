@@ -1,7 +1,7 @@
 {
-  "name": "@jswork/typescript-tsup-library",
+  "name": "@jswork/audio-recorder-kit",
   "version": "1.0.0",
-  "description": "typescript-tsup-library-description",
+  "description": "Browser audio recorder with realtime waveform callback.",
   "npmClient": "pnpm",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
@@ -35,7 +35,7 @@
   },
   "homepage": "https://js.work",
   "keywords": [
-    "typescript-tsup-library",
+    "audio-recorder-kit",
     "number",
     "num"
   ]

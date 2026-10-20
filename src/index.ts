@@ -2,7 +2,7 @@
 // quotient 商
 // remainder 余数
 
-const tsupLibrary = (inNumber: number | string): number[] => {
+const AudioRecordKit = (inNumber: number | string): number[] => {
   const str = String(inNumber);
   const rdx = str.length - 1;
   return str.split('').map((n: string, idx) => {
@@ -11,4 +11,4 @@ const tsupLibrary = (inNumber: number | string): number[] => {
   });
 };
 
-export default tsupLibrary;
+export default AudioRecordKit;
