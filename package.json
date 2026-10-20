@@ -6,6 +6,18 @@
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.esm.js",
+      "require": "./dist/react.cjs.js"
+    }
+  },
   "files": [
     "src",
     "dist"
@@ -17,6 +29,10 @@
     "release": "release-it"
   },
   "license": "MIT",
+  "peerDependencies": {
+    "react": ">=16.8",
+    "react-dom": ">=16.8"
+  },
   "devDependencies": {
     "@happy-dom/global-registrator": "^21.0.3",
     "@jswork/style-guide": "^1.0.3",

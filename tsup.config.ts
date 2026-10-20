@@ -21,7 +21,7 @@ const stripBrokenDepMaps: Plugin = {
 };
 
 const baseOptions: Options = {
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/react.tsx'],
   clean: true,
   format: ['cjs', 'esm'],
   tsconfig: './tsconfig.json',
@@ -30,8 +30,9 @@ const baseOptions: Options = {
   cjsInterop: true,
   // Bundle runtime deps so dist artifacts resolve in a raw browser
   noExternal: ['js-audio-recorder', 'media-devices'],
+  // React is a peer dependency; never bundle it into dist
+  external: ['react', 'react-dom'],
   esbuildPlugins: [stripBrokenDepMaps],
-  // external: ['react', 'react-dom'],
   banner: {
     js: tsupBanner(),
   },
