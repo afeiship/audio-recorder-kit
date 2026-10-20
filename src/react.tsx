@@ -179,3 +179,28 @@ export function useRecorderState(): Omit<RecorderContextValue, 'subscribeWave'> 
   }
   return ctx;
 }
+
+export interface UseWaveformOptions {
+  /** Opt into React state updates for waveData/vol (re-renders every tick). */
+  state?: boolean;
+}
+
+export function useWaveform(options: UseWaveformOptions = {}) {
+  const ctx = useContext(RecorderContext);
+  if (!ctx) {
+    throw new Error('useWaveform must be used within <AudioRecorderProvider>');
+  }
+  const enableState = options.state ?? false;
+  const [waveData, setWaveData] = useState<Uint8Array | null>(null);
+  const [vol, setVol] = useState(0);
+
+  useEffect(() => {
+    if (!enableState) return;
+    return ctx.subscribeWave((payload) => {
+      setWaveData(payload.waveData);
+      setVol(payload.vol);
+    });
+  }, [enableState, ctx.subscribeWave]);
+
+  return { waveDataRef: ctx.waveDataRef, volRef: ctx.volRef, waveData, vol };
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { AudioRecorderProvider, useRecorderState } from '../src/react';
+import { AudioRecorderProvider, useRecorderState, useWaveform } from '../src/react';
 import { FakeRecorder } from './mock';
 
 function createWrapper(props: Record<string, any> = {}, onCreate?: (fake: FakeRecorder) => void) {
@@ -179,5 +179,45 @@ describe('AudioRecorderProvider + useRecorderState', () => {
     });
     expect(result.current.error?.code).toBe('PERMISSION_DENIED');
     expect(errors).toContain('PERMISSION_DENIED');
+  });
+});
+
+describe('useWaveform', () => {
+  it('should update refs without exposing waveform state by default', async () => {
+    const { wrapper, getFake } = createWrapper();
+    const { result } = renderHook(
+      () => ({ rec: useRecorderState(), wave: useWaveform() }),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.rec.start();
+    });
+    act(() => {
+      getFake().emitProgress(1.5, 75);
+    });
+
+    expect(result.current.wave.waveDataRef.current?.length).toBe(1024);
+    expect(result.current.wave.volRef.current).toBe(75);
+    expect(result.current.wave.waveData).toBeNull();
+    expect(result.current.wave.vol).toBe(0);
+  });
+
+  it('should expose waveform state when { state: true }', async () => {
+    const { wrapper, getFake } = createWrapper();
+    const { result } = renderHook(
+      () => ({ rec: useRecorderState(), wave: useWaveform({ state: true }) }),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.rec.start();
+    });
+    act(() => {
+      getFake().emitProgress(1.5, 75);
+    });
+
+    expect(result.current.wave.waveData?.length).toBe(1024);
+    expect(result.current.wave.vol).toBe(75);
   });
 });
