@@ -5,6 +5,7 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
     "pretty": true,
     "esModuleInterop": true,
     "skipDefaultLibCheck": true,
