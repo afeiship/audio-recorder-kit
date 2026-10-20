@@ -4,13 +4,9 @@ coverage
 npm-debug.log
 yarn.lock
 package-lock.json
+pnpm-lock.yaml
+
 .DS_Store
 .idea
-
-
-# vscode
 .vscode
-.history
-
-# python cache
-__pycache__
+dist
