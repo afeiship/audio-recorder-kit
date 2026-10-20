@@ -58,9 +58,14 @@ export function AudioRecorderProvider(props: AudioRecorderProviderProps) {
   const [error, setError] = useState<AudioRecorderError | null>(null);
 
   const instanceRef = useRef<AudioRecorder | null>(null);
+  const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const syncState = () => {
-    if (instanceRef.current) setState(instanceRef.current.state);
+    const inst = instanceRef.current;
+    if (inst) {
+      setState(inst.state);
+      setDuration(inst.duration);
+    }
   };
 
   if (instanceRef.current === null) {
@@ -90,8 +95,16 @@ export function AudioRecorderProvider(props: AudioRecorderProviderProps) {
   const instance = instanceRef.current;
 
   useEffect(() => {
+    // Cancel a destroy scheduled by a previous cleanup (StrictMode remount)
+    if (destroyTimerRef.current !== null) {
+      clearTimeout(destroyTimerRef.current);
+      destroyTimerRef.current = null;
+    }
     return () => {
-      void instanceRef.current?.destroy();
+      destroyTimerRef.current = setTimeout(() => {
+        destroyTimerRef.current = null;
+        void instanceRef.current?.destroy();
+      }, 0);
     };
   }, [instance]);
 

@@ -4,12 +4,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { AudioRecorderProvider, useRecorderState } from '../src/react';
 import { FakeRecorder } from './mock';
 
-function createWrapper(props: Record<string, any> = {}) {
+function createWrapper(props: Record<string, any> = {}, onCreate?: (fake: FakeRecorder) => void) {
   let fake!: FakeRecorder;
   const wrapper = ({ children }: { children?: React.ReactNode }) => (
     <AudioRecorderProvider
       _createRecorder={(cfg: any) => {
         fake = new FakeRecorder(cfg);
+        onCreate?.(fake);
         return fake as any;
       }}
       _supportsMediaDevices={() => true}
@@ -118,5 +119,65 @@ describe('AudioRecorderProvider + useRecorderState', () => {
 
   it('should throw when hooks are used outside the provider', () => {
     expect(() => renderHook(() => useRecorderState())).toThrow(/AudioRecorderProvider/);
+  });
+
+  it('should survive StrictMode double-mount', async () => {
+    let fake!: FakeRecorder;
+    const { result } = renderHook(() => useRecorderState(), {
+      wrapper: ({ children }: { children?: React.ReactNode }) => (
+        <React.StrictMode>
+          <AudioRecorderProvider
+            _createRecorder={(cfg: any) => {
+              fake = new FakeRecorder(cfg);
+              return fake as any;
+            }}
+            _supportsMediaDevices={() => true}
+          >
+            {children}
+          </AudioRecorderProvider>
+        </React.StrictMode>
+      ),
+    });
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(result.current.state).toBe('recording');
+    expect(fake.startCalled).toBe(1);
+  });
+
+  it('should reset duration mirror when restarting a session', async () => {
+    const { wrapper, getFake } = createWrapper();
+    const { result } = renderHook(() => useRecorderState(), { wrapper });
+    await act(async () => {
+      await result.current.start();
+    });
+    act(() => {
+      getFake().emitProgress(1.5);
+    });
+    expect(result.current.duration).toBe(1500);
+    await act(async () => {
+      await result.current.stop();
+    });
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(result.current.duration).toBe(0);
+    expect(result.current.state).toBe('recording');
+  });
+
+  it('should forward core onError and mirror start() rejection', async () => {
+    const errors: string[] = [];
+    const { wrapper } = createWrapper(
+      { onError: (e: any) => errors.push(e.code) },
+      (f) => {
+        f.shouldThrowOnStart = new DOMException('denied', 'NotAllowedError');
+      }
+    );
+    const { result } = renderHook(() => useRecorderState(), { wrapper });
+    await act(async () => {
+      await expect(result.current.start()).rejects.toThrow();
+    });
+    expect(result.current.error?.code).toBe('PERMISSION_DENIED');
+    expect(errors).toContain('PERMISSION_DENIED');
   });
 });
