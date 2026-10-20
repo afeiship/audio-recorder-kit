@@ -19,6 +19,7 @@ export interface AudioRecorderInternalOptions extends AudioRecorderOptions {
 export default class AudioRecorder {
   private _state: RecorderState = 'idle';
   private _duration: number = 0;
+  private _isAutoStopping = false;
   private _recorder: Recorder | null = null;
   private _options: AudioRecorderOptions;
   private _createRecorder: (config: any) => Recorder;
@@ -87,7 +88,27 @@ export default class AudioRecorder {
     if (!this._supportsMediaDevices()) {
       throw new AudioRecorderError('NOT_SUPPORTED', 'Recording is not supported in this browser');
     }
-    throw new AudioRecorderError('NOT_INITIALIZED', 'Not implemented yet (Task 5)');
+
+    this._duration = 0;
+    this._isAutoStopping = false;
+
+    this._recorder = this._createRecorder({
+      sampleRate: this._options.sampleRate ?? 16000,
+      sampleBits: this._options.sampleBits ?? 16,
+      numChannels: this._options.numChannels ?? 1,
+    });
+    this._attachRecorderHooks(this._recorder);
+
+    try {
+      await this._recorder.start();
+      this._state = 'recording';
+    } catch (err) {
+      this._recorder = null;
+      const code = mapDOMExceptionToErrorCode(err);
+      const wrapped = new AudioRecorderError(code, `Failed to start recording: ${code}`, err);
+      this._options.onError?.(wrapped);
+      throw wrapped;
+    }
   }
 
   pause(): void {
@@ -106,16 +127,38 @@ export default class AudioRecorder {
     this._state = 'recording';
   }
 
-  async stop(_options?: StopOptions): Promise<StopResult> {
+  async stop(options?: StopOptions): Promise<StopResult> {
     if (this._state !== 'recording' && this._state !== 'paused') {
       throw new AudioRecorderError('INVALID_STATE', `Cannot stop when state is ${this._state}`);
     }
-    throw new AudioRecorderError('NOT_INITIALIZED', 'Not implemented yet (Task 5)');
+    if (!this._recorder) {
+      throw new AudioRecorderError('NOT_INITIALIZED', 'Recorder instance not initialized');
+    }
+
+    this._recorder.stop();
+    this._state = 'stopped';
+
+    const blob = this._recorder.getWAVBlob();
+    const filename = options?.filename || `record_${Date.now()}.wav`;
+    const file = new File([blob], filename, { type: 'audio/wav' });
+    const url =
+      typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
+        ? URL.createObjectURL(blob)
+        : '';
+
+    return { blob, file, url, duration: this._duration };
   }
 
   async destroy(): Promise<void> {
     if (this._state === 'destroyed') return;
     if (this._recorder) {
+      if (this._state === 'recording' || this._state === 'paused') {
+        try {
+          this._recorder.stop();
+        } catch {
+          // ignore stop errors during destroy
+        }
+      }
       try {
         await this._recorder.destroy();
       } catch {
@@ -125,5 +168,30 @@ export default class AudioRecorder {
     }
     this._options = {};
     this._state = 'destroyed';
+  }
+
+  private _attachRecorderHooks(recorder: Recorder): void {
+    recorder.onprogress = (payload) => {
+      if (this._state !== 'recording' || this._isAutoStopping) return;
+
+      // upstream duration is in SECONDS; public contract is milliseconds
+      this._duration = Math.round(payload.duration * 1000);
+      this._options.onTimeUpdate?.(this._duration);
+
+      const waveData = recorder.getRecordAnalyseData?.() ?? new Uint8Array(2048).fill(128);
+      this._options.onWaveDataUpdate?.({
+        vol: Math.min(100, Math.max(0, Math.round(payload.vol || 0))),
+        waveData,
+        duration: this._duration,
+      });
+
+      if (this._options.maxDuration && this._duration >= this._options.maxDuration) {
+        this._isAutoStopping = true;
+        this._options.onMaxReach?.();
+        this.stop().catch((err) => {
+          this._options.onError?.(err as AudioRecorderError);
+        });
+      }
+    };
   }
 }
