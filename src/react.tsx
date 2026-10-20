@@ -204,3 +204,49 @@ export function useWaveform(options: UseWaveformOptions = {}) {
 
   return { waveDataRef: ctx.waveDataRef, volRef: ctx.volRef, waveData, vol };
 }
+
+export function usePermission() {
+  const [status, setStatus] = useState<PermissionStatus>('unknown');
+
+  const refresh = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      setStatus(await AudioRecorder.checkPermission());
+    } catch {
+      setStatus('unknown');
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    if (typeof navigator === 'undefined' || !navigator.permissions?.query) return;
+
+    // NOTE: this module exports a `PermissionStatus` string union that shadows
+    // the DOM interface of the same name, so the listener below never annotates
+    // with it — the handler closes over `ps` and cleanup goes through `detach`.
+    let detach: (() => void) | null = null;
+    let stale = false;
+
+    navigator.permissions
+      .query({ name: 'microphone' as PermissionName })
+      .then((ps) => {
+        if (stale) return;
+        const handler = () => {
+          const next = ps.state;
+          if (next === 'granted' || next === 'denied' || next === 'prompt') setStatus(next);
+        };
+        ps.addEventListener('change', handler);
+        detach = () => ps.removeEventListener('change', handler);
+      })
+      .catch(() => {
+        // Safari cannot query microphone; manual refresh() remains available.
+      });
+
+    return () => {
+      stale = true;
+      detach?.();
+    };
+  }, [refresh]);
+
+  return { status, refresh };
+}

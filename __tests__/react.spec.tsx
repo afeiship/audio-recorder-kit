@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { AudioRecorderProvider, useRecorderState, useWaveform } from '../src/react';
+import {
+  AudioRecorderProvider,
+  usePermission,
+  useRecorderState,
+  useWaveform,
+} from '../src/react';
+import AudioRecorder from '../src/index';
 import { FakeRecorder } from './mock';
 
 function createWrapper(props: Record<string, any> = {}, onCreate?: (fake: FakeRecorder) => void) {
@@ -219,5 +225,22 @@ describe('useWaveform', () => {
 
     expect(result.current.wave.waveData?.length).toBe(1024);
     expect(result.current.wave.vol).toBe(75);
+  });
+});
+
+describe('usePermission', () => {
+  it('should stay unknown in headless env and follow checkPermission via refresh', async () => {
+    const original = AudioRecorder.checkPermission;
+    const { result } = renderHook(() => usePermission());
+    // happy-dom has no mic permission state: initial query throws / unsupported
+    expect(['unknown', 'prompt']).toContain(result.current.status);
+
+    (AudioRecorder as any).checkPermission = async () => 'granted' as const;
+    await act(async () => {
+      await result.current.refresh();
+    });
+    expect(result.current.status).toBe('granted');
+
+    (AudioRecorder as any).checkPermission = original;
   });
 });
