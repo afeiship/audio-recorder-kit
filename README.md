@@ -11,13 +11,46 @@ yarn add @jswork/audio-recorder-kit
 ```
 
 ## usage
-```js
-import AudioRecordKit from '@jswork/audio-recorder-kit';
+```typescript
+import AudioRecorder from '@jswork/audio-recorder-kit';
 
-AudioRecordKit(1024);
+if (!AudioRecorder.isSupported()) return;
 
-// [1000, 0, 20, 4]
+const recorder = new AudioRecorder({
+  sampleRate: 16000,
+  sampleBits: 16,
+  numChannels: 1,
+  maxDuration: 60_000, // auto stop at 60s
+  onTimeUpdate: (duration) => console.log(duration), // ms
+  onWaveDataUpdate: ({ vol, waveData, duration }) => {
+    // waveData: Uint8Array(1024), 0 ~ 255, 128 is the midline
+  },
+  onMaxReach: () => console.log('max duration reached'),
+  onError: (err) => console.error(err.code),
+});
+
+await recorder.start();
+recorder.pause();
+recorder.resume();
+
+const { blob, file, url, duration } = await recorder.stop({ filename: 'demo.wav' });
+await recorder.destroy();
+
+// permission check
+const state = await AudioRecorder.checkPermission(); // 'granted' | 'denied' | 'prompt'
 ```
+
+## api
+| member | description |
+|---|---|
+| `AudioRecorder.isSupported()` | whether the browser supports recording |
+| `AudioRecorder.checkPermission()` | query microphone permission |
+| `recorder.start()` | start recording |
+| `recorder.pause()` / `recorder.resume()` | pause / resume |
+| `recorder.stop(options?)` | stop, returns `{ blob, file, url, duration }` |
+| `recorder.destroy()` | release resources |
+| `recorder.state` | `idle \| recording \| paused \| stopped \| destroyed` |
+| `recorder.duration` | current duration in ms |
 
 ## license
 Code released under [the MIT license](https://github.com/afeiship/audio-recorder-kit/blob/main/LICENSE.txt).
