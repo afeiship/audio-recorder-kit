@@ -1,41 +1,9 @@
 {
-  "name": "@jswork/audio-recorder-kit",
-  "version": "1.0.0",
+  "dependencies": {
+    "js-audio-recorder": "^1.0.7",
+    "media-devices": "^0.5.0"
+  },
   "description": "Browser audio recorder with realtime waveform callback.",
-  "npmClient": "pnpm",
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.esm.js",
-      "require": "./dist/index.cjs.js",
-      "default": "./dist/index.cjs.js"
-    },
-    "./react": {
-      "types": "./dist/react.d.ts",
-      "import": "./dist/react.esm.js",
-      "require": "./dist/react.cjs.js",
-      "default": "./dist/react.cjs.js"
-    },
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "src",
-    "dist"
-  ],
-  "prettier": "@jswork/style-guide/prettier",
-  "scripts": {
-    "build": "tsup",
-    "test": "bun test",
-    "release": "release-it"
-  },
-  "license": "MIT",
-  "peerDependencies": {
-    "react": ">=16.14",
-    "react-dom": ">=16.14"
-  },
   "devDependencies": {
     "@happy-dom/global-registrator": "^21.0.3",
     "@jswork/style-guide": "^1.0.3",
@@ -55,18 +23,55 @@
     "tsup": "^8.2.4",
     "typescript": "^4.9.5"
   },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
+  "exports": {
+    ".": {
+      "default": "./dist/index.cjs.js",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json",
+    "./react": {
+      "default": "./dist/react.cjs.js",
+      "import": "./dist/react.esm.js",
+      "require": "./dist/react.cjs.js",
+      "types": "./dist/react.d.ts"
+    }
   },
+  "files": [
+    "src",
+    "dist"
+  ],
   "homepage": "https://js.work",
   "keywords": [
     "audio-recorder-kit",
     "number",
-    "num"
+    "num",
+    "audio-recording",
+    "realtime-waveform",
+    "microphone-permission",
+    "browser-support",
+    "javascript-library"
   ],
-  "dependencies": {
-    "js-audio-recorder": "^1.0.7",
-    "media-devices": "^0.5.0"
-  }
+  "license": "MIT",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "name": "@jswork/audio-recorder-kit",
+  "npmClient": "pnpm",
+  "peerDependencies": {
+    "react": "\u003e=16.14",
+    "react-dom": "\u003e=16.14"
+  },
+  "prettier": "@jswork/style-guide/prettier",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "build": "tsup",
+    "release": "release-it",
+    "test": "bun test"
+  },
+  "types": "dist/index.d.ts",
+  "version": "1.0.0"
 }
