@@ -1,0 +1,37 @@
+# audio-recorder-kit
+
+> Browser audio recorder library with realtime waveform callbacks, permission checks, and React hooks bindings.
+
+`@jswork/audio-recorder-kit` is a UI-free, business-agnostic browser audio recording adapter built on Web Audio / MediaDevices. It handles environment and permission detection, a strict recording state machine (start / pause / resume / stop / destroy), WAV Blob + File output with ObjectURL, configurable sample rate / bit depth / channels, realtime waveform and volume payloads, max-duration auto-stop, and reliable resource cleanup. A `./react` subpath exposes `AudioRecorderProvider` plus `useRecorderState`, `useWaveform`, and `usePermission` hooks.
+
+## Documentation
+
+- [README](README.md): Installation, basic usage, and license overview
+- [PRD / Technical Specification](docs/01-prd.md): Product requirements, responsibilities, state machine, and audio format constraints
+
+## Specifications
+
+- [React Hooks Design](docs/superpowers/specs/2026-10-21-audio-recorder-react-hooks-design.md): API design for the Provider and hooks layer
+- [React Hooks Implementation Plan](docs/superpowers/plans/2026-10-21-audio-recorder-react-hooks.md): Task-by-task plan for the React bindings
+- [Core Implementation Plan](docs/superpowers/plans/2026-10-20-audio-recorder-implementation.md): Original task plan for the core recorder
+
+## Source
+
+- [src/index.ts](src/index.ts): Core `AudioRecorder` class entry point
+- [src/types.ts](src/types.ts): Public type definitions (`RecorderState`, `StopResult`, `WavePayload`, options)
+- [src/errors.ts](src/errors.ts): `AudioRecorderError` and error codes
+- [src/react.tsx](src/react.tsx): React bindings (`AudioRecorderProvider`, hooks) subpath entry
+
+## Tests
+
+- [\_\_tests\_\_/index.spec.ts](__tests__/index.spec.ts): Core recorder behavior tests
+- [\_\_tests\_\_/react.spec.tsx](__tests__/react.spec.tsx): Provider and hooks tests
+- [\_\_tests\_\_/errors.spec.ts](__tests__/errors.spec.ts): Error class and code tests
+- [\_\_tests\_\_/mock.ts](__tests__/mock.ts): `FakeRecorder` test double used across suites
+
+## Configuration
+
+- [package.json](package.json): Package metadata, exports map (`.` and `./react`), peer dependencies
+- [tsup.config.ts](tsup.config.ts): Multi-entry build config (ESM / CJS / UMD, React external)
+- [tsconfig.json](tsconfig.json): TypeScript compiler options
+- [bunfig.toml](bunfig.toml): bun test preload (happy-dom environment)
