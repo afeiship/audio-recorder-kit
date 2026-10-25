@@ -59,8 +59,8 @@
   "name": "@jswork/audio-recorder-kit",
   "npmClient": "pnpm",
   "peerDependencies": {
-    "react": "\u003e=16.14",
-    "react-dom": "\u003e=16.14"
+    "react": ">=16.14",
+    "react-dom": ">=16.14"
   },
   "prettier": "@jswork/style-guide/prettier",
   "publishConfig": {
@@ -73,5 +73,5 @@
     "test": "bun test"
   },
   "types": "dist/index.d.ts",
-  "version": "1.0.0"
+  "version": "1.0.1"
 }
