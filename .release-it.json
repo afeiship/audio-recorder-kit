@@ -3,9 +3,9 @@
     "requireCleanWorkingDir": false
   },
   "hooks": {
-    "before:init": ["yarn run test"],
+    "before:init": ["pnpm test"],
     "after:init": ["t2k"],
-    "after:bump": ["yarn run build"],
+    "after:bump": ["pnpm build"],
     "after:release": ["yarn pkg get name | cnpm sync"]
   },
   "github": {
