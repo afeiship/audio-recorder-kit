@@ -16,7 +16,41 @@ export interface AudioRecorderInternalOptions extends AudioRecorderOptions {
   _supportsMediaDevices?: () => boolean;
 }
 
+function isRecordingSupported(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hasAudioContext = !!(window.AudioContext || (window as any).webkitAudioContext);
+  return supportsMediaDevices() && hasAudioContext;
+}
+
+async function checkRecordingPermission(): Promise<'granted' | 'denied' | 'prompt'> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
+    throw new AudioRecorderError('NOT_SUPPORTED', 'MediaDevices API not supported');
+  }
+
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const status = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      return status.state as 'granted' | 'denied' | 'prompt';
+    } catch {
+      // Some browsers cannot query microphone permission; fall through to getUserMedia probe
+    }
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((track) => track.stop());
+    return 'granted';
+  } catch (err) {
+    const code = mapDOMExceptionToErrorCode(err);
+    if (code === 'PERMISSION_DENIED') return 'denied';
+    throw new AudioRecorderError(code, 'Permission check failed', err);
+  }
+}
+
 export default class AudioRecorder {
+  static isSupported: typeof isRecordingSupported;
+  static checkPermission: typeof checkRecordingPermission;
+
   private _state: RecorderState = 'idle';
   private _duration: number = 0;
   private _isAutoStopping = false;
@@ -24,37 +58,6 @@ export default class AudioRecorder {
   private _options: AudioRecorderOptions;
   private _createRecorder: (config: any) => Recorder;
   private _supportsMediaDevices: () => boolean;
-
-  static isSupported(): boolean {
-    if (typeof window === 'undefined') return false;
-    const hasAudioContext = !!(window.AudioContext || (window as any).webkitAudioContext);
-    return supportsMediaDevices() && hasAudioContext;
-  }
-
-  static async checkPermission(): Promise<'granted' | 'denied' | 'prompt'> {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
-      throw new AudioRecorderError('NOT_SUPPORTED', 'MediaDevices API not supported');
-    }
-
-    if (navigator.permissions && navigator.permissions.query) {
-      try {
-        const status = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-        return status.state as 'granted' | 'denied' | 'prompt';
-      } catch {
-        // Some browsers cannot query microphone permission; fall through to getUserMedia probe
-      }
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
-      return 'granted';
-    } catch (err) {
-      const code = mapDOMExceptionToErrorCode(err);
-      if (code === 'PERMISSION_DENIED') return 'denied';
-      throw new AudioRecorderError(code, 'Permission check failed', err);
-    }
-  }
 
   constructor(options: AudioRecorderInternalOptions = {}) {
     if (options.maxDuration !== undefined) {
@@ -211,3 +214,8 @@ export default class AudioRecorder {
     };
   }
 }
+
+// Attach statics explicitly so transpilers that misclassify `static` members
+// still expose them on the constructor rather than the prototype.
+AudioRecorder.isSupported = isRecordingSupported;
+AudioRecorder.checkPermission = checkRecordingPermission;
