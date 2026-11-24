@@ -17,7 +17,7 @@ import type {
   StopResult,
   WavePayload,
 } from './index';
-import { AudioRecorderError } from './index';
+import { AudioRecorderError } from './errors';
 
 export type PermissionStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
 

@@ -47,7 +47,7 @@ async function checkRecordingPermission(): Promise<'granted' | 'denied' | 'promp
   }
 }
 
-export default class AudioRecorder {
+class AudioRecorder {
   static isSupported: typeof isRecordingSupported;
   static checkPermission: typeof checkRecordingPermission;
 
@@ -219,3 +219,8 @@ export default class AudioRecorder {
 // still expose them on the constructor rather than the prototype.
 AudioRecorder.isSupported = isRecordingSupported;
 AudioRecorder.checkPermission = checkRecordingPermission;
+
+// Named + default export: the named binding survives CommonJS namespace
+// wrapping, while the default stays compatible with default imports.
+export { AudioRecorder };
+export default AudioRecorder;
